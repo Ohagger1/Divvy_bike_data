@@ -104,5 +104,91 @@ all_data$day <- format(as.Date(all_data$date), "%d")
 all_data$year <- format(as.Date(all_data$date), "%Y")
 all_data$day_of_week <- format(as.Date(all_data$date), "%A")
 
+#Change ride time to seconds - difference in seconds
+all_data$ride_length <- difftime(all_data$ended_at,all_data$started_at)
+#Check data is correct
+all_data$ride_length
+str(all_data$ride_length)
+
+is.factor(all_data$ride_length)
+
+#Change ride length to numeric
+all_data$ride_length <- as.numeric(as.character(all_data$ride_length))
+is.numeric(all_data$ride_length)
+
+colnames(all_data)
+
+table(all_data$ride_length<0)
+
+drop(all_data_2)
+
+#Remove variables which are updated by Divva or the ride length is less than 0
+all_data_2 <- all_data[!(all_data$start_station_name == "HQ QR" | all_data$ride_length<0),]
+
+#Investigation into remaining data
+table(all_data_2$ride_id)
+table(all_data_2$rideable_type)
+head(all_data$rideable_type)
+str(all_data_2$rideable_type)
+table(all_data_2$member_casual)
+print(all_data_2$rideable_type)
+table((all_data_2$rideable_type="docked_bike"))
+
+mean(all_data_2$ride_length) #straight average (total ride length / rides)
+median(all_data_2$ride_length) #midpoint number in the ascending array of ride lengths
+max(all_data_2$ride_length) #longest ride
+min(all_data_2$ride_length) #shortest ride
+
+#Summary of statistics above
+summary(all_data_2$ride_length)
+
+#Comparing members and casual users
+aggregate(all_data_2$ride_length ~ all_data_2$member_casual, FUN = mean)
+aggregate(all_data_2$ride_length ~ all_data_2$member_casual, FUN = median)
+aggregate(all_data_2$ride_length ~ all_data_2$member_casual, FUN = max)
+aggregate(all_data_2$ride_length ~ all_data_2$member_casual, FUN = min)
+
+
+# See the average ride time by each day for members vs casual users
+aggregate(all_data_2$ride_length ~ all_data_2$member_casual + all_data_2$day_of_week, FUN = mean)
+
+#Order the days of the week
+all_data_2$day_of_week <- ordered(all_data_2$day_of_week, levels=c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+table(all_data_2$day_of_week)
+summary(all_data_2$day_of_week)
+
+
+#Summary of number of rides and number on given days for a casual and member
+all_data_2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  #creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n()							#calculates the number of rides and average duration 
+            ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, weekday)# sorts
+
+#Visualization of data from above
+all_data_2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+#Visualization for average duration
+all_data_2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+#Export a summary for analysis
+counts <- aggregate(all_data_2$ride_length ~ all_data_2$member_casual + all_data_2$day_of_week, FUN = mean)
+write.csv(counts, file = "C:/Users/ohagg/OneDrive - University College London/Desktop/Divvy_bike_data/avg_ride_length.csv")
 
 
